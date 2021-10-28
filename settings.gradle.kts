@@ -19,6 +19,12 @@ dependencyResolutionManagement {
     }
 }
 
+//includeBuild("../opentelemetry-java") {
+//  dependencySubstitution {
+//    substitute(module("io.opentelemetry:opentelemetry-api-profiler")).using(project(":api:profiler"))
+//  }
+//}
+
 val isCI = System.getenv("CI") != null
 val skipBuildscan = System.getenv("SKIP_BUILDSCAN").toBoolean()
 gradleEnterprise {

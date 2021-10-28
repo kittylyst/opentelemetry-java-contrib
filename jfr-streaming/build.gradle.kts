@@ -4,6 +4,7 @@ plugins {
 
 dependencies {
   implementation("io.opentelemetry:opentelemetry-api-metrics")
+  implementation("io.opentelemetry:opentelemetry-api-profiler")
 
   testImplementation("io.opentelemetry:opentelemetry-sdk-metrics-testing")
   testImplementation("io.opentelemetry:opentelemetry-sdk-testing")
