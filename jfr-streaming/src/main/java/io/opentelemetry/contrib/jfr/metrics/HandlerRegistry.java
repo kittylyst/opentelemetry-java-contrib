@@ -6,6 +6,7 @@
 package io.opentelemetry.contrib.jfr.metrics;
 
 import io.opentelemetry.api.metrics.MeterProvider;
+import io.opentelemetry.api.profiler.internal.NoopExecutionProfile;
 import io.opentelemetry.contrib.jfr.metrics.internal.RecordedEventHandler;
 import io.opentelemetry.contrib.jfr.metrics.internal.ThreadGrouper;
 import io.opentelemetry.contrib.jfr.metrics.internal.container.ContainerConfigurationHandler;
@@ -18,6 +19,7 @@ import io.opentelemetry.contrib.jfr.metrics.internal.memory.ObjectAllocationInNe
 import io.opentelemetry.contrib.jfr.metrics.internal.memory.ObjectAllocationOutsideTLABHandler;
 import io.opentelemetry.contrib.jfr.metrics.internal.network.NetworkReadHandler;
 import io.opentelemetry.contrib.jfr.metrics.internal.network.NetworkWriteHandler;
+import io.opentelemetry.contrib.jfr.metrics.internal.profiler.MethodSampleHandler;
 import java.util.*;
 import java.util.stream.Stream;
 
@@ -34,6 +36,7 @@ final class HandlerRegistry {
 
   static HandlerRegistry createDefault(MeterProvider meterProvider) {
     var otelMeter = meterProvider.get(INSTRUMENTATION_NAME, INSTRUMENTATION_VERSION, null);
+    var otelProfiler = NoopExecutionProfile.getInstance();
 
     var grouper = new ThreadGrouper();
     var filtered =
@@ -47,6 +50,7 @@ final class HandlerRegistry {
             new ContextSwitchRateHandler(otelMeter),
             new OverallCPULoadHandler(otelMeter),
             new ContainerConfigurationHandler(otelMeter),
+            new MethodSampleHandler(otelProfiler, grouper, "jdk.ExecutionSample"),
             new LongLockHandler(otelMeter, grouper));
     filtered.forEach(RecordedEventHandler::init);
 

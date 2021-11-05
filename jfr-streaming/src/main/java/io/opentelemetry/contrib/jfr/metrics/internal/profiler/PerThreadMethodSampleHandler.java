@@ -5,12 +5,11 @@
 
 package io.opentelemetry.contrib.jfr.metrics.internal.profiler;
 
+import io.opentelemetry.api.profiler.BoundFlamegraph;
 import io.opentelemetry.api.profiler.JvmStackTrace;
 import io.opentelemetry.contrib.jfr.metrics.internal.RecordedEventHandler;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import jdk.jfr.consumer.RecordedEvent;
 import jdk.jfr.consumer.RecordedFrame;
 import jdk.jfr.consumer.RecordedMethod;
@@ -21,14 +20,20 @@ public class PerThreadMethodSampleHandler implements RecordedEventHandler {
   private static final String THREAD_NAME = "thread.name";
   private static final String SAMPLED_THREAD = "sampledThread";
 
+  private final BoundFlamegraph flamegraph;
   private final String threadName;
   private final String eventName;
-  private final Map<String, List<JvmStackTrace>> stackTraces = new HashMap<>();
 
   public PerThreadMethodSampleHandler(
-      /* instrument is real 1st param */ String threadName, String eventName) {
+      BoundFlamegraph flamegraph, String threadName, String eventName) {
+    this.flamegraph = flamegraph;
     this.threadName = threadName;
     this.eventName = eventName;
+  }
+
+  @Override
+  public PerThreadMethodSampleHandler init() {
+    return this;
   }
 
   @Override
@@ -53,12 +58,11 @@ public class PerThreadMethodSampleHandler implements RecordedEventHandler {
     if (ev.hasField(STATE)) {
       threadState = ev.getString(STATE);
     }
-    var event = traceToFrames(threadName, threadState, ev.getStackTrace());
 
-    stackTraces.computeIfAbsent(event.threadName(), k -> new ArrayList<>()).add(event);
+    flamegraph.record(convertTrace(threadName, threadState, ev.getStackTrace()));
   }
 
-  private static JvmStackTrace traceToFrames(
+  private static JvmStackTrace convertTrace(
       String name, String state, RecordedStackTrace stackTrace) {
     List<JvmStackTrace.JvmStackFrame> out = new ArrayList<>();
 

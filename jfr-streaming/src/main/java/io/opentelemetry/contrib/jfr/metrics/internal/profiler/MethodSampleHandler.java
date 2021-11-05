@@ -8,15 +8,23 @@ package io.opentelemetry.contrib.jfr.metrics.internal.profiler;
 import static io.opentelemetry.contrib.jfr.metrics.internal.Constants.ATTR_THREAD_NAME;
 
 import io.opentelemetry.api.common.Attributes;
+import io.opentelemetry.api.profiler.ExecutionProfile;
 import io.opentelemetry.contrib.jfr.metrics.internal.AbstractThreadDispatchingHandler;
 import io.opentelemetry.contrib.jfr.metrics.internal.RecordedEventHandler;
 import io.opentelemetry.contrib.jfr.metrics.internal.ThreadGrouper;
 
 public class MethodSampleHandler extends AbstractThreadDispatchingHandler {
+  private static final String METRIC_NAME = "runtime.jvm.cpu.longlock.time";
+  private static final String DESCRIPTION = "";
 
-  public MethodSampleHandler(ThreadGrouper grouper, String eventName) {
+  private final String eventName;
+  private final ExecutionProfile otelProfile;
+
+  public MethodSampleHandler(
+      ExecutionProfile otelProfile, ThreadGrouper grouper, String eventName) {
     super(grouper);
     this.eventName = eventName;
+    this.otelProfile = otelProfile;
   }
 
   public enum Event {
@@ -34,8 +42,6 @@ public class MethodSampleHandler extends AbstractThreadDispatchingHandler {
     }
   }
 
-  private final String eventName;
-
   public MethodSampleHandler init() {
     return this;
   }
@@ -48,10 +54,11 @@ public class MethodSampleHandler extends AbstractThreadDispatchingHandler {
   @Override
   public RecordedEventHandler createPerThreadSummarizer(String threadName) {
     var attr = Attributes.of(ATTR_THREAD_NAME, threadName);
-    // Instrument build goes here...
+    var builder = otelProfile.flamegraphBuilder(METRIC_NAME);
+    builder.setDescription(DESCRIPTION);
+    var flamegraph = builder.build().bind(attr);
 
-    // var eventName = "jdk.ExecutionSample";
-    var ret = new PerThreadMethodSampleHandler(threadName, eventName);
+    var ret = new PerThreadMethodSampleHandler(flamegraph, threadName, eventName);
     return ret.init();
   }
 }
