@@ -1,3 +1,8 @@
+/*
+ * Copyright The OpenTelemetry Authors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 package io.opentelemetry.contrib.jfr.metrics.internal.jit;
 
 import io.opentelemetry.api.metrics.Meter;
@@ -8,11 +13,11 @@ public final class CompilerStatisticsHandler implements RecordedEventHandler {
   private static final String EVENT_NAME = "jdk.CompilerStatistics";
   private static final String METRIC_NAME = "runtime.jvm.compiler.";
 
-
   private final Meter otelMeter;
 
-  public CompilerStatisticsHandler(Meter otelMeter) {this.otelMeter = otelMeter;}
-
+  public CompilerStatisticsHandler(Meter otelMeter) {
+    this.otelMeter = otelMeter;
+  }
 
   @Override
   public String getEventName() {
@@ -20,7 +25,5 @@ public final class CompilerStatisticsHandler implements RecordedEventHandler {
   }
 
   @Override
-  public void accept(RecordedEvent recordedEvent) {
-
-  }
+  public void accept(RecordedEvent recordedEvent) {}
 }
