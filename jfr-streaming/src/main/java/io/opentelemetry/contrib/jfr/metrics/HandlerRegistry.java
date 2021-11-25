@@ -12,6 +12,7 @@ import io.opentelemetry.contrib.jfr.metrics.internal.container.ContainerConfigur
 import io.opentelemetry.contrib.jfr.metrics.internal.cpu.ContextSwitchRateHandler;
 import io.opentelemetry.contrib.jfr.metrics.internal.cpu.LongLockHandler;
 import io.opentelemetry.contrib.jfr.metrics.internal.cpu.OverallCPULoadHandler;
+import io.opentelemetry.contrib.jfr.metrics.internal.jit.CompilerStatisticsHandler;
 import io.opentelemetry.contrib.jfr.metrics.internal.memory.G1GarbageCollectionHandler;
 import io.opentelemetry.contrib.jfr.metrics.internal.memory.GCHeapSummaryHandler;
 import io.opentelemetry.contrib.jfr.metrics.internal.memory.ObjectAllocationInNewTLABHandler;
@@ -47,6 +48,7 @@ final class HandlerRegistry {
             new ContextSwitchRateHandler(otelMeter),
             new OverallCPULoadHandler(otelMeter),
             new ContainerConfigurationHandler(otelMeter),
+            new CompilerStatisticsHandler(otelMeter),
             new LongLockHandler(otelMeter, grouper));
     filtered.forEach(RecordedEventHandler::init);
 
