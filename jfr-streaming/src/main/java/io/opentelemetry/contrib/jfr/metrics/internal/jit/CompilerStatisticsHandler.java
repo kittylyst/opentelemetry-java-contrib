@@ -23,38 +23,32 @@ public final class CompilerStatisticsHandler implements RecordedEventHandler {
       "nmetodsSize"; // This is correct, there is a typo in the JFR field name
   private static final String COMPILE_TIME = "totalTimeSpent";
 
-  private final Meter otelMeter;
   private volatile long countValue = 0L;
   private volatile double sizeValue = 0.0;
   private volatile double timeValue = 0.0;
-
-  public CompilerStatisticsHandler(Meter otelMeter) {
-    this.otelMeter = otelMeter;
-  }
 
   @Override
   public String getEventName() {
     return EVENT_NAME;
   }
 
-  public CompilerStatisticsHandler init() {
-    otelMeter
+  @Override
+  public void initializeMeter(Meter meter) {
+    meter
         .upDownCounterBuilder(METRIC_NAME_COUNT)
         .ofDoubles()
         .setUnit(ONE)
         .buildWithCallback(codm -> codm.observe(countValue));
-    otelMeter
+    meter
         .upDownCounterBuilder(METRIC_NAME_SIZE)
         .ofDoubles()
         .setUnit(ONE) // Really MB
         .buildWithCallback(codm -> codm.observe(sizeValue));
-    otelMeter
+    meter
         .upDownCounterBuilder(METRIC_NAME_TIME)
         .ofDoubles()
         .setUnit(MILLISECONDS) // Really s
         .buildWithCallback(codm -> codm.observe(timeValue));
-
-    return this;
   }
 
   @Override
