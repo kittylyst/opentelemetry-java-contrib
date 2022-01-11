@@ -127,6 +127,25 @@ mutually exclusive with `otel.jmx.groovy.script`. The currently supported target
 - `otel.instrument(MBeanHelper mBeanHelper, String name, String description, String attribute, Closure instrument)` - `unit` is "1" and `labelFuncs` are empty map.
 - `otel.instrument(MBeanHelper mBeanHelper, String name, String attribute, Closure instrument)` - `description` is empty string, `unit` is "1" and `labelFuncs` are empty map.
 
+In cases where you'd like to share instrument names while creating datapoints for multiple MBean attributes:
+
+- `otel.instrument(MBeanHelper mBeanHelper, String instrumentName, String description, String unit, Map<String, Closure> labelFuncs, Map<String, Map<String, Closure>> attributeLabelFuncs, Closure instrument)`
+
+- An example of this in Tomcat is to consolidate different thread types into one `"tomcat.threads"` metric using both `currentThreadCount` and `currentThreadsBusy` MBean attributes, labeling with their applicable `"Thread Type"`:
+
+  ```groovy
+    otel.instrument(otel.mbean("Catalina:type=ThreadPool,name=*"), "tomcat.threads", "description", "1",
+    ["proto_handler" : { mbean -> mbean.name().getKeyProperty("name") }],
+    ["currentThreadCount": ["Thread Type": {mbean -> "current"}],
+    "currentThreadsBusy": ["Thread Type": {mbean -> "busy"}]],
+    otel.&doubleValueObserver)
+  ```
+
+`otel.instrument()` provides additional signatures to allow this more expressive MBean attribute access:
+- `otel.instrument(MBeanHelper mBeanHelper, String name, String description, String unit, Map<String, Map<String, Closure>> attributeLabelFuncs, Closure instrument)` - `labelFuncs` are empty map.
+- `otel.instrument(MBeanHelper mBeanHelper, String name, String description, Map<String, Map<String, Closure>> attributeLabelFuncs, Closure instrument)` - `unit` is "1" and `labelFuncs` are empty map.
+- `otel.instrument(MBeanHelper mBeanHelper, String name, Map<String, Map<String, Closure>> attributeLabelFuncs, Closure instrument)` - `description` is empty string, `unit` is "1" and `labelFuncs` are empty map
+
 ### OpenTelemetry Synchronous Instrument Helpers
 
 - `otel.doubleCounter(String name, String description, String unit)`
@@ -215,3 +234,10 @@ file contents can also be provided via stdin on startup when using `-config -` a
 | `javax.net.ssl.keyStoreType` | no | The key store type. |
 | `javax.net.ssl.trustStore` | no | The trusted store path if the TLS profile is required. |
 | `javax.net.ssl.trustStorePassword` | no | The trust store file password if required. |
+
+## Component owners
+
+- [Miguel Rodriguez](https://github.com/Mrod1598), ObservIQ
+- [Ryan Fitzpatrick](https://github.com/rmfitzpatrick), Splunk
+
+Learn more about component owners in [component-owners.yml](https://github.com/open-telemetry/opentelemetry-java-contrib/blob/main/.github/workflows/component-owners.yml).

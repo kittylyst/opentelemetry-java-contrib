@@ -15,7 +15,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 final class OtelUtils {
-  protected static String prettyPrintSdkConfiguration(
+  static String prettyPrintSdkConfiguration(
       AutoConfiguredOpenTelemetrySdk autoConfiguredOpenTelemetrySdk) {
     List<String> configAttributeNames =
         Arrays.asList(
@@ -32,7 +32,7 @@ final class OtelUtils {
     ConfigProperties sdkConfig = autoConfiguredOpenTelemetrySdk.getConfig();
     Map<String, String> configurationAttributes = new LinkedHashMap<>();
     for (String attributeName : configAttributeNames) {
-      final String attributeValue = sdkConfig.getString(attributeName);
+      String attributeValue = sdkConfig.getString(attributeName);
       if (attributeValue != null) {
         configurationAttributes.put(attributeName, attributeValue);
       }
@@ -47,4 +47,6 @@ final class OtelUtils {
         + ", Resource: "
         + sdkResource.getAttributes();
   }
+
+  private OtelUtils() {}
 }

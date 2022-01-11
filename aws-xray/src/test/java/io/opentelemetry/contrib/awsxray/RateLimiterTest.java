@@ -45,7 +45,7 @@ class RateLimiterTest {
 
     // move time 5s forward, enough to accumulate credits for 10 messages, but it should still be
     // capped at 2
-    clock.advance(Duration.ofMillis(5000));
+    clock.advance(Duration.ofSeconds(5));
 
     assertThat(limiter.trySpend(1.0)).isTrue();
     assertThat(limiter.trySpend(1.0)).isTrue();
@@ -91,7 +91,7 @@ class RateLimiterTest {
 
     // move time 5s forward, enough to accumulate credits for 10 messages, but it should still be
     // capped at 2
-    clock.advance(Duration.ofMillis(5000));
+    clock.advance(Duration.ofSeconds(5));
 
     assertThat(limiter.trySpend(0.25)).isTrue();
     assertThat(limiter.trySpend(0.25)).isTrue();
@@ -111,7 +111,7 @@ class RateLimiterTest {
 
     // move time 20s forward, enough to accumulate credits for 2 messages, but it should still be
     // capped at 1
-    clock.advance(Duration.ofMillis(20000));
+    clock.advance(Duration.ofSeconds(20));
 
     assertThat(limiter.trySpend(1.0)).isTrue();
     assertThat(limiter.trySpend(1.0)).isFalse();
@@ -136,10 +136,10 @@ class RateLimiterTest {
     assertThat(limiter.trySpend(50)).isTrue(); // consume accrued balance
     assertThat(limiter.trySpend(1)).isFalse();
 
-    clock.advance(Duration.ofMillis(1_000_000)); // add a lot of credits (max out balance)
+    clock.advance(Duration.ofSeconds(1_000)); // add a lot of credits (max out balance)
     assertThat(limiter.trySpend(1)).isTrue(); // take one credit
 
-    clock.advance(Duration.ofMillis(1_000_000)); // add a lot of credits (max out balance)
+    clock.advance(Duration.ofSeconds(1_000)); // add a lot of credits (max out balance)
     assertThat(limiter.trySpend(101)).isFalse(); // can't consume more than max balance
     assertThat(limiter.trySpend(100)).isTrue(); // consume max balance
     assertThat(limiter.trySpend(1)).isFalse();
@@ -150,10 +150,10 @@ class RateLimiterTest {
   void testRateLimiterConcurrency() throws InterruptedException, ExecutionException {
     int numWorkers = 8;
     ExecutorService executorService = Executors.newFixedThreadPool(numWorkers);
-    final int creditsPerWorker = 1000;
+    int creditsPerWorker = 1000;
     TestClock clock = TestClock.create();
-    final RateLimiter limiter = new RateLimiter(1, numWorkers * creditsPerWorker, clock);
-    final AtomicInteger count = new AtomicInteger();
+    RateLimiter limiter = new RateLimiter(1, numWorkers * creditsPerWorker, clock);
+    AtomicInteger count = new AtomicInteger();
     List<Future<?>> futures = new ArrayList<>(numWorkers);
     for (int w = 0; w < numWorkers; ++w) {
       Future<?> future =

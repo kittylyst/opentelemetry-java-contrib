@@ -22,7 +22,7 @@ import java.util.AbstractMap;
 import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import javax.annotation.Nullable;
 
 /**
  * A low-latency event queue for background updating of (possibly contended) objects. This is
@@ -144,11 +144,13 @@ final class DisruptorEventQueue {
       this.result = result;
     }
 
-    @Nullable Object getEventArgs() {
+    @Nullable
+    Object getEventArgs() {
       return eventArgs;
     }
 
-    @Nullable EventType getEventType() {
+    @Nullable
+    EventType getEventType() {
       return eventType;
     }
 
@@ -173,9 +175,9 @@ final class DisruptorEventQueue {
     }
 
     @Override
-    public void onEvent(final DisruptorEvent event, long sequence, boolean endOfBatch) {
-      final Object readableSpan = event.getEventArgs();
-      final EventType eventType = event.getEventType();
+    public void onEvent(DisruptorEvent event, long sequence, boolean endOfBatch) {
+      Object readableSpan = event.getEventArgs();
+      EventType eventType = event.getEventType();
       if (eventType == null) {
         logger.warning("Disruptor enqueued null element type.");
         return;
@@ -186,7 +188,7 @@ final class DisruptorEventQueue {
             // In practice never null
             if (readableSpan != null) {
               @SuppressWarnings("unchecked")
-              final SimpleImmutableEntry<ReadWriteSpan, Context> eventArgs =
+              SimpleImmutableEntry<ReadWriteSpan, Context> eventArgs =
                   (SimpleImmutableEntry<ReadWriteSpan, Context>) readableSpan;
               spanProcessor.onStart(eventArgs.getValue(), eventArgs.getKey());
             }
@@ -212,8 +214,7 @@ final class DisruptorEventQueue {
     }
   }
 
-  private static void propagateResult(
-      final CompletableResultCode result, final DisruptorEvent event) {
+  private static void propagateResult(CompletableResultCode result, DisruptorEvent event) {
     result.whenComplete(
         () -> {
           if (result.isSuccess()) {

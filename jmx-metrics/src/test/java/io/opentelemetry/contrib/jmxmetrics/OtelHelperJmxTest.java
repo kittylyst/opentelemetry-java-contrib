@@ -10,7 +10,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import groovy.util.GroovyMBean;
+import groovy.jmx.GroovyMBean;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -126,7 +126,7 @@ class OtelHelperJmxTest {
     return new OtelHelper(new JmxClient(config), new GroovyMetricEnvironment(config));
   }
 
-  private void verifyClient(Properties props) throws Exception {
+  private static void verifyClient(Properties props) throws Exception {
     props.setProperty(JmxConfig.GROOVY_SCRIPT, "myscript.groovy");
     JmxConfig config = new JmxConfig(props);
     config.validate();

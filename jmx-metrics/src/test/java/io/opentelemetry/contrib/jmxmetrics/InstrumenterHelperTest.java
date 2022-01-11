@@ -80,7 +80,7 @@ class InstrumenterHelperTest {
 
   @BeforeEach
   void setupOtel() {
-    metricReader = new InMemoryMetricReader();
+    metricReader = InMemoryMetricReader.create();
     meterProvider = SdkMeterProvider.builder().registerMetricReader(metricReader).build();
 
     otel = new OtelHelper(jmxClient, new GroovyMetricEnvironment(meterProvider, "otel.test"));
@@ -447,6 +447,47 @@ class InstrumenterHelperTest {
     }
 
     @Test
+    void doubleValueCallbackMultipleAttributes() throws Exception {
+      String instrumentMethod = "doubleValueCallback";
+      MBeanHelper mBeanHelper =
+          registerThingsOnOneObject("multiple:type=" + instrumentMethod + ".Thing,multi=1");
+
+      String instrumentName = "multiple." + instrumentMethod + ".counter";
+      String description = "multiple double counter description";
+
+      Map<String, Map<String, Closure<?>>> attributes = new HashMap<>();
+      attributes.put(
+          "FirstAttribute",
+          Collections.singletonMap("Thing", (Closure<?>) Eval.me("{ mbean -> 1 }")));
+      attributes.put(
+          "SecondAttribute",
+          Collections.singletonMap("Thing", (Closure<?>) Eval.me("{ mbean -> 2 }")));
+      attributes.put(
+          "ThirdAttribute",
+          Collections.singletonMap("Thing", (Closure<?>) Eval.me("{ mbean -> 3 }")));
+      attributes.put(
+          "FourthAttribute",
+          Collections.singletonMap("Thing", (Closure<?>) Eval.me("{ mbean -> 4 }")));
+      attributes.put(
+          "nonExsistentAttribute",
+          Collections.singletonMap("unused", (Closure<?>) Eval.me("{ mbean -> unused }")));
+
+      updateWithHelperMultiAttribute(
+          mBeanHelper, instrumentMethod, instrumentName, description, attributes);
+
+      assertThat(metricReader.collectAllMetrics())
+          .satisfiesExactly(
+              metric ->
+                  assertThat(metric)
+                      .hasName(instrumentName)
+                      .hasDescription(description)
+                      .hasUnit("1")
+                      .hasDoubleGauge()
+                      .points()
+                      .satisfiesExactlyInAnyOrder(assertAttributeDoublePoints()));
+    }
+
+    @Test
     void longValueCallback() throws Exception {
       String instrumentMethod = "longValueCallback";
       String thingName = "multiple:type=" + instrumentMethod + ".Thing";
@@ -500,6 +541,32 @@ class InstrumenterHelperTest {
                       .containsOnly(
                           attributeEntry("labelOne", "labelOneValue"),
                           attributeEntry("labelTwo", "3")))
+          .toArray(Consumer[]::new);
+    }
+
+    @SuppressWarnings("unchecked")
+    private Consumer<DoublePointData>[] assertAttributeDoublePoints() {
+      return Stream.<Consumer<DoublePointData>>of(
+              point ->
+                  assertThat(point)
+                      .hasValue(11.0)
+                      .attributes()
+                      .containsOnly(attributeEntry("Thing", "1")),
+              point ->
+                  assertThat(point)
+                      .hasValue(10.0)
+                      .attributes()
+                      .containsOnly(attributeEntry("Thing", "2")),
+              point ->
+                  assertThat(point)
+                      .hasValue(9.0)
+                      .attributes()
+                      .containsOnly(attributeEntry("Thing", "3")),
+              point ->
+                  assertThat(point)
+                      .hasValue(8.0)
+                      .attributes()
+                      .containsOnly(attributeEntry("Thing", "4")))
           .toArray(Consumer[]::new);
     }
 
@@ -588,6 +655,15 @@ class InstrumenterHelperTest {
     return mBeanHelper;
   }
 
+  MBeanHelper registerThingsOnOneObject(String thingName) throws Exception {
+    SystemStatus thing = new SystemStatus();
+    registeredBeans.add(mbeanServer.registerMBean(thing, new ObjectName(thingName)));
+
+    MBeanHelper mBeanHelper = new MBeanHelper(jmxClient, thingName, false);
+    mBeanHelper.fetch();
+    return mBeanHelper;
+  }
+
   MBeanHelper registerMultipleThings(List<String> thingNames) throws Exception {
     for (String thingName : thingNames) {
       Thing thing = new Thing();
@@ -606,13 +682,33 @@ class InstrumenterHelperTest {
       String description,
       String attribute) {
     Closure<?> instrument = (Closure<?>) Eval.me("otel", otel, "otel.&" + instrumentMethod);
-    Map<String, Closure> labelFuncs = new HashMap<>();
+    Map<String, Closure<?>> labelFuncs = new HashMap<>();
     labelFuncs.put("labelOne", (Closure<?>) Eval.me("{ unused -> 'labelOneValue' }"));
     labelFuncs.put(
         "labelTwo", (Closure<?>) Eval.me("{ mbean -> mbean.name().getKeyProperty('thing') }"));
     InstrumentHelper instrumentHelper =
         new InstrumentHelper(
-            mBeanHelper, instrumentName, description, "1", labelFuncs, attribute, instrument);
+            mBeanHelper,
+            instrumentName,
+            description,
+            "1",
+            labelFuncs,
+            Collections.singletonMap(attribute, null),
+            instrument);
+    instrumentHelper.update();
+  }
+
+  void updateWithHelperMultiAttribute(
+      MBeanHelper mBeanHelper,
+      String instrumentMethod,
+      String instrumentName,
+      String description,
+      Map<String, Map<String, Closure<?>>> attributes) {
+    Closure<?> instrument = (Closure<?>) Eval.me("otel", otel, "otel.&" + instrumentMethod);
+    Map<String, Closure<?>> labelFuncs = new HashMap<>();
+    InstrumentHelper instrumentHelper =
+        new InstrumentHelper(
+            mBeanHelper, instrumentName, description, "1", labelFuncs, attributes, instrument);
     instrumentHelper.update();
   }
 
@@ -631,6 +727,38 @@ class InstrumenterHelperTest {
     @Override
     public long getLong() {
       return 234;
+    }
+  }
+
+  public interface SystemStatusMBean {
+    Double getFirstAttribute();
+
+    Double getSecondAttribute();
+
+    Double getThirdAttribute();
+
+    Double getFourthAttribute();
+  }
+
+  public static class SystemStatus implements SystemStatusMBean {
+    @Override
+    public Double getFirstAttribute() {
+      return 11.0;
+    }
+
+    @Override
+    public Double getSecondAttribute() {
+      return 10.0;
+    }
+
+    @Override
+    public Double getThirdAttribute() {
+      return 9.0;
+    }
+
+    @Override
+    public Double getFourthAttribute() {
+      return 8.0;
     }
   }
 }
